@@ -26,6 +26,17 @@ branch is created, it gets its own dated section here.
 
 ---
 
+## 2026-07-02 — branch `2026-07-02/render-env-and-dist`
+
+### Render env vars + dist tracking fix
+- **Root cause:** Render deploy `dep-d92uc84vikkc73b61920` ended with `update_failed` because `artifacts/api-server/dist/index.mjs` was not present on the `main` branch that Render checks out.
+- **Fix:** confirmed `artifacts/api-server/dist/` is tracked and merged it into `main`; pushed `main` to `paisabrazilfl-cpu/NewClawd`.
+- **Env vars:** refreshed Render service env vars with the latest credentials provided by the operator (no values committed; all keys set via Render API).
+- **Deploy:** triggered a new manual Render deploy after the fixes.
+- **Verification:** health checks `/health` and `/healthz` will be polled; Playwright E2E smoke tests will run after the service is live.
+
+---
+
 ## 2026-06-07 — branch `claude/clever-allen-cEtpo`
 
 ### Third-party integrations wired (env-driven, no hardcoded secrets)

@@ -42,3 +42,10 @@
 - Sandbox Node v20.20.2 does not satisfy the `>=24.0.0` engine requirement. The build still succeeded, but production runtime is Render's Node environment.
 - Wrong Cloudflare worker deployment was submitted for deletion via `gsk hosted worker_delete` and is pending approval (`pending_action_id: 2d336f0b-037a-4cda-9624-ceb117fbafd1`).
 - GitHub push will use the token directly in the remote URL (no sandbox auth setup needed).
+
+## 2026-07-02 continued — env vars and dist fix
+
+- **Render deploy failure:** first deploy `dep-d92uc84vikkc73b61920` ended with `update_failed`. Investigation showed `main` on GitHub did not contain `artifacts/api-server/dist/`, so Render's `startCommand` (`node artifacts/api-server/dist/index.mjs`) could not start the service.
+- **Fix:** merged the tracked `dist/` files into `main` and pushed `main` to `paisabrazilfl-cpu/NewClawd`.
+- **Env vars:** refreshed service env vars via Render API with the latest operator-provided keys (KIMI, Steel, Firecrawl, ScrapingBee, Composio, Cloudflare/R2, etc.). No secret values are committed to the repo.
+- **Next deploy:** triggered a new manual deploy; will verify health endpoints and run Playwright E2E smoke tests.

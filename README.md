@@ -47,7 +47,10 @@ Never commit secrets. See `.env.example` for required keys. Production secrets a
 
 - **Merged workspace:** `bos-aura-mvp-fixes-2026-06-17-1.zip` applied to `/home/user/webapp` on 2026-07-02.
 - **API build:** `artifacts/api-server/dist/index.mjs` (5.2 MB) generated successfully.
-- **Next:** branch committed and pushed to GitHub, then Render deploy triggered via the `rnd_` key.
+- **Git / dist fix:** `artifacts/api-server/dist/` is now tracked and pushed to `main` so Render's prebuilt `startCommand` can find `index.mjs`.
+- **Render env vars:** refreshed service env vars with the latest operator-provided credentials (KIMI, Steel, Firecrawl, ScrapingBee, Composio, Cloudflare/R2, etc.).
+- **Render deploy:** manually triggered after env vars and dist fix.
+- **Next:** poll deploy status, verify `/health` and `/healthz`, run Playwright E2E smoke tests.
 
 ## Branch policy
 
