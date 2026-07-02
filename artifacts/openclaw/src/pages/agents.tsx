@@ -1,0 +1,213 @@
+import { useListAgents, resolveApiUrl } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { AgentStatusDot } from "@/components/ui/agent-status-dot";
+import { Terminal, Cpu, Activity, AlertTriangle, RefreshCw, Server } from "lucide-react";
+
+interface ModelOpt { id: string; name: string; context_length?: number; provider?: string }
+interface ProviderOpt { id: string; name: string; active: boolean }
+
+export default function Agents() {
+  const { data: agents = [], isLoading, isError, refetch } = useListAgents();
+  const [savingId, setSavingId] = useState<number | null>(null);
+  // Per-agent provider (GPU backend) filter for the model dropdown.
+  const [providerFilter, setProviderFilter] = useState<Record<number, string>>({});
+
+  // Every LLM wired to the system — NIM catalog + OpenRouter + Bitdeer (GET /api/ai/models).
+  const { data: modelData } = useQuery<{ models: ModelOpt[]; providers: ProviderOpt[] }>({
+    queryKey: ["ai-models"],
+    queryFn: async () => {
+      const r = await fetch(resolveApiUrl("/api/ai/models"), { credentials: "include" });
+      if (!r.ok) throw new Error("failed to load models");
+      return r.json();
+    },
+  });
+  const models = modelData?.models ?? [];
+  const providers = modelData?.providers ?? [];
+  // Only show providers that are actually active (have a key configured).
+  const activeProviders = providers.filter((p) => p.active);
+
+  // Infer which provider an agent's current model belongs to (for default filter).
+  const providerOf = (modelId: string | null | undefined): string =>
+    modelId?.startsWith("or:") ? "openrouter" : modelId?.startsWith("bd:") ? "bitdeer" : "nim";
+
+  const setModel = async (agentId: number, model: string) => {
+    setSavingId(agentId);
+    try {
+      await fetch(resolveApiUrl(`/api/agents/${agentId}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ model }),
+      });
+      await refetch();
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
+      
+      <div className="p-8 border-b border-card-border relative z-10 flex items-center gap-4">
+        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+          <Terminal className="w-6 h-6 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Agents</h1>
+          <p className="text-sm text-muted-foreground mt-1">Your agent — pick the LLM it runs on and see the tools it can use.</p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-8 relative z-10">
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-64 bg-card/50 rounded-xl border border-card-border animate-pulse"></div>
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
+            <div className="text-sm text-muted-foreground">Couldn't load the agent roster.</div>
+            <button onClick={() => refetch()} className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-card-border text-sm text-foreground hover:border-primary/40 transition-all">
+              <RefreshCw className="w-4 h-4" /> Retry
+            </button>
+          </div>
+        ) : agents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+            <Terminal className="w-8 h-8 text-muted-foreground/40" />
+            <div className="text-sm text-muted-foreground">No agents found.</div>
+            <div className="text-xs text-muted-foreground/60 max-w-sm">The swarm seeds six CLAW agents on first run. If none appear, the server may still be starting up.</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {agents.map(agent => (
+              <div key={agent.id} className="bg-card/40 backdrop-blur-sm border border-card-border rounded-xl p-6 relative overflow-hidden group hover:border-primary/50 transition-colors">
+                {/* Accent line top */}
+                <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: agent.color }}></div>
+                
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex gap-4 items-center">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold text-lg"
+                         style={{ backgroundColor: `${agent.color}20`, color: agent.color, border: `1px solid ${agent.color}40` }}>
+                      {agent.avatarInitials}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg" style={{ color: agent.color }}>{agent.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <AgentStatusDot status={agent.status} />
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground font-mono">{agent.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Role</div>
+                    <div className="text-sm font-medium">{agent.role}</div>
+                  </div>
+                  
+                  {agent.description && (
+                    <div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Directive</div>
+                      <div className="text-xs text-muted-foreground line-clamp-2">{agent.description}</div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-background/50 p-3 rounded-lg border border-card-border">
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">
+                        <Server className="w-3 h-3" /> GPU / Provider
+                      </div>
+                      {(() => {
+                        const sel = providerFilter[agent.id] ?? providerOf(agent.model);
+                        return (
+                          <select
+                            value={sel}
+                            onChange={(e) => setProviderFilter((p) => ({ ...p, [agent.id]: e.target.value }))}
+                            className="w-full bg-background border border-card-border rounded-md px-2 py-1.5 text-xs font-mono text-foreground focus:border-primary focus:outline-none cursor-pointer"
+                            title="Pick the GPU inference provider — filters the models below"
+                          >
+                            {activeProviders.length === 0 && <option value="nim">NVIDIA NIM</option>}
+                            {activeProviders.map((p) => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
+                        );
+                      })()}
+                    </div>
+                    <div className="bg-background/50 p-3 rounded-lg border border-card-border">
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">
+                        <Cpu className="w-3 h-3" /> Model {savingId === agent.id && <span className="text-primary normal-case tracking-normal">· saving…</span>}
+                      </div>
+                      {(() => {
+                        const sel = providerFilter[agent.id] ?? providerOf(agent.model);
+                        const filtered = models.filter((m) => (m.provider ?? providerOf(m.id)) === sel);
+                        return (
+                          <select
+                            value={agent.model ?? ""}
+                            disabled={savingId === agent.id}
+                            onChange={(e) => setModel(agent.id, e.target.value)}
+                            className="w-full bg-background border border-card-border rounded-md px-2 py-1.5 text-xs font-mono text-foreground focus:border-primary focus:outline-none cursor-pointer disabled:opacity-50"
+                            title="Pick the LLM this agent runs on"
+                          >
+                            {models.length === 0 && <option value={agent.model ?? ""}>{agent.model || "loading models…"}</option>}
+                            {agent.model && !models.some((m) => m.id === agent.model) && (
+                              <option value={agent.model}>{agent.model} (current)</option>
+                            )}
+                            {/* If the agent's current model is on a different provider than the filter, still show it */}
+                            {agent.model && providerOf(agent.model) !== sel && models.some((m) => m.id === agent.model) && (
+                              <option value={agent.model}>{models.find((m) => m.id === agent.model)?.name} (current)</option>
+                            )}
+                            {filtered.length === 0 && models.length > 0 && (
+                              <option value="" disabled>No models for this provider</option>
+                            )}
+                            {filtered.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.name}{m.context_length ? ` · ${Math.round(m.context_length / 1000)}k` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        );
+                      })()}
+                    </div>
+                    <div className="bg-background/50 p-3 rounded-lg border border-card-border">
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">
+                        <Activity className="w-3 h-3" /> Context
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <div className="text-xs font-mono">{Math.round((agent.contextUsed / agent.contextMax) * 100)}% Used</div>
+                        <div className="h-1.5 w-full bg-card-border rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary" 
+                            style={{ width: `${Math.min(100, (agent.contextUsed / agent.contextMax) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {agent.capabilities && agent.capabilities.length > 0 && (
+                    <div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">Capabilities</div>
+                      <div className="flex flex-wrap gap-2">
+                        {agent.capabilities.map(cap => (
+                          <span key={cap} className="px-2 py-1 bg-secondary text-secondary-foreground text-[10px] rounded-md border border-card-border uppercase font-mono">
+                            {cap}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

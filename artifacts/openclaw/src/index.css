@@ -1,0 +1,228 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  --font-sans: var(--app-font-sans);
+  --font-serif: var(--app-font-serif);
+  --font-mono: var(--app-font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Gemini-style theme — near-black canvas with a black→blue gradient glow,
+   Google-blue accent, near-white ink. One source of truth: both :root and .dark
+   share it, so it applies under the `dark` class on <html>. (Blue #4285F4.) */
+:root,
+.dark {
+  --background: 222 16% 6%;   /* near-black, faint cool tint (#0c0e12) */
+  --foreground: 0 0% 96%;     /* near-white ink */
+
+  --card: 220 14% 10%;        /* dark slate panel, lifts off the black bg */
+  --card-foreground: 0 0% 96%;
+  --card-border: 220 10% 18%; /* subtle cool border */
+
+  --popover: 220 14% 9%;
+  --popover-foreground: 0 0% 96%;
+  --popover-border: 220 10% 18%;
+
+  --primary: 217 91% 60%;     /* Gemini / Google blue #4285F4 */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 12% 16%;
+  --secondary-foreground: 0 0% 92%;
+
+  --muted: 220 12% 15%;
+  --muted-foreground: 220 9% 65%;
+
+  --accent: 217 91% 60%;      /* blue accent — active / focus cue */
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 220 10% 18%;
+  --input: 220 10% 20%;
+  --ring: 217 91% 60%;
+
+  --app-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --app-font-serif: 'Inter', Georgia, serif;
+  --app-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 0.625rem;
+
+  --sidebar-primary-border: hsl(var(--primary));
+  --sidebar-accent-border: hsl(var(--accent));
+  --primary-border: hsl(var(--primary));
+  --secondary-border: hsl(var(--secondary));
+  --muted-border: hsl(var(--muted));
+  --accent-border: hsl(var(--accent));
+  --destructive-border: hsl(var(--destructive));
+}
+
+/* Breathing Edge Runtime Indicator — wraps an active/executing status so the
+   interface feels alive without a page reload. (Cyber-Minimal Slate spec §3.) */
+.status-glow-executing {
+  box-shadow: 0 0 16px 2px rgba(16, 185, 129, 0.25);
+  animation: breathing-glow 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes breathing-glow {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.03); }
+}
+
+/* 3D Gemini-blue button — a raised, tactile "ledge" you can press. Google-blue
+   face, darker-blue bottom edge for depth, top inner highlight; presses DOWN on
+   :active. Reusable: add `btn-3d` to any <button> (or it's the Button default). */
+.btn-3d {
+  background-color: #1a73e8;
+  color: #fff;
+  border: 0;
+  border-radius: 0.6rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    0 4px 0 0 #0c47a6,
+    0 6px 14px rgba(12, 71, 166, 0.40);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease, filter 0.15s ease;
+}
+.btn-3d:hover:not(:disabled) { background-color: #2b7de9; }
+.btn-3d:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 1px 0 0 #0c47a6,
+    0 2px 6px rgba(12, 71, 166, 0.38);
+}
+.btn-3d:disabled { opacity: 0.55; }
+/* Subtler small variant for tight toolbars/icon buttons. */
+.btn-3d-sm {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 3px 0 0 #0c47a6,
+    0 4px 9px rgba(12, 71, 166, 0.38);
+}
+.btn-3d-sm:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 0 0 #0c47a6; }
+
+/* ── Swarm "thinking" indicator ─────────────────────────────────────────────
+   A tactile 3D RED orb that spins while the swarm is working — a rotating shine
+   reads as a turning sphere, a BLUE ring orbits it (red + blue = "what it's
+   doing"). Pair with `.thinking-text` for the red↔blue shimmering status label. */
+.thinking-orb-3d {
+  position: relative;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 26%, #ff8c8c 0%, #ef2b2b 42%, #b80f0f 74%, #780707 100%);
+  box-shadow:
+    inset 0 1.5px 3px rgba(255, 255, 255, 0.55),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(184, 15, 15, 0.55),
+    0 0 14px 2px rgba(239, 43, 43, 0.45);
+}
+/* rotating specular highlight → makes the sphere look like it's turning */
+.thinking-orb-3d::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.6) 38deg, transparent 96deg);
+  mix-blend-mode: screen;
+  animation: thinking-spin 1.05s linear infinite;
+}
+/* blue orbit ring spinning the other way */
+.thinking-orb-3d::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: #4285f4;
+  border-right-color: #1a73e8;
+  animation: thinking-spin 0.85s linear infinite reverse;
+}
+@keyframes thinking-spin { to { transform: rotate(360deg); } }
+
+.thinking-text {
+  background: linear-gradient(90deg, #ef4444 0%, #3b82f6 50%, #ef4444 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: thinking-sheen 2.4s linear infinite;
+}
+@keyframes thinking-sheen { to { background-position: -200% 0; } }
+
+/* Honor reduced-motion: keep the colours, drop the spin/shimmer. */
+@media (prefers-reduced-motion: reduce) {
+  .thinking-orb-3d::before, .thinking-orb-3d::after, .thinking-text { animation: none; }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-size: 15px;
+  }
+
+  body {
+    @apply font-sans antialiased text-foreground;
+    /* Gemini black → blue gradient: pure black up top, deep-blue glow rising from
+       the bottom. Fixed so it stays put behind transparent page shells. */
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(125% 75% at 50% 108%, rgba(40, 99, 235, 0.45) 0%, rgba(26, 64, 160, 0.18) 38%, rgba(10, 12, 18, 0) 66%),
+      linear-gradient(180deg, #06070a 0%, #07090f 45%, #0a1022 78%, #0d1730 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.55;
+    letter-spacing: -0.006em;
+  }
+
+  /* Shared app shell uses the body gradient — keep page roots transparent. */
+  .app-gradient { background: transparent; }
+
+  /* Tame the cyberpunk SHOUTING: tracked-out uppercase becomes readable. */
+  .uppercase {
+    letter-spacing: 0.04em;
+  }
+}

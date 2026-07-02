@@ -1,0 +1,141 @@
+services:
+  - type: web
+    name: bos-aura
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    # Build is handled by GitHub Actions (.github/workflows/deploy.yml):
+    #   1. GA installs deps + runs pnpm --filter @workspace/api-server run build
+    #   2. GA commits the built dist/ back to main with [skip ci]
+    #   3. GA triggers this Render service deploy via API
+    # Render itself just uses the prebuilt dist — no build step needed here.
+    buildCommand: echo dist is prebuilt
+    startCommand: node artifacts/api-server/dist/index.mjs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: BASE_PATH
+        value: /
+      # ⚠️ CRITICAL — SESSION_SECRET is the key that decrypts the in-app vault
+      #    (AES-256-GCM). If this value EVER changes, every stored secret becomes
+      #    PERMANENTLY unreadable. `generateValue: true` sets it once and keeps it
+      #    across deploys — do NOT regenerate it, edit it, or recreate the service
+      #    without first copying the current value. Keep an off-site copy of it,
+      #    and back up the vault: `pnpm --filter @workspace/scripts vault:backup`.
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: OPERATOR_PASSWORD
+        sync: false
+      # DATABASE_URL is set DIRECTLY on the service (dashboard/API), NOT via
+      # fromDatabase. History: the original free `bos-aura-db` was auto-deleted
+      # (Render free-Postgres ~30-day expiry) and the DB now lives on as the
+      # standalone paid `openclaw-db` (databaseName openclaw_db_te42). A
+      # fromDatabase ref to the missing free DB booted every new deploy with no
+      # DATABASE_URL → "DATABASE_URL must be set" crash loop (2026-06-13). Keep
+      # this `sync: false` so a blueprint re-sync never re-links the dead DB.
+      - key: DATABASE_URL
+        sync: false
+      # ── External API key — gates /api/external/v1/* (Bearer or x-api-key).
+      #    The relay SECONDARY (T800) authenticates to BOS's inbound /relay with
+      #    THIS exact value as its RELAY_API_KEY. Set the value in the dashboard.
+      - key: OPENCLAW_API_KEY
+        sync: false
+      # ── Primary/secondary collaboration relay (BOS-AURA = PRIMARY) ──────────
+      #    Non-secret config is set here; the shared secret is set in the
+      #    dashboard. The loop stays OFF until RELAY_API_KEY is filled in.
+      - key: RELAY_ENABLED
+        value: "true"
+      - key: RELAY_ROLE
+        value: primary
+      - key: RELAY_PEER_URL
+        value: https://t800-aura.onrender.com
+      - key: RELAY_SELF_NAME
+        value: BOS-AURA
+      - key: RELAY_PEER_NAME
+        value: T800-AURA
+      - key: RELAY_MAX_ROUNDS
+        value: "8"
+      # Secret: MUST equal T800-AURA's OPENCLAW_API_KEY. Set in the dashboard.
+      - key: RELAY_API_KEY
+        sync: false
+      - key: STEEL_API_KEY
+        sync: false
+      - key: FIRECRAWL_API_KEY
+        sync: false
+      # Required LLM integration — used by the agent orchestrator. Without an
+      # NVIDIA_API_KEY, agent reasoning fails at runtime. Set this secret in
+      # the Render dashboard or in the vault; do not commit a value here.
+      - key: NVIDIA_API_KEY
+        sync: false
+      # Composio tool/auth router (execution off by default)
+      - key: COMPOSIO_API_KEY
+        sync: false
+      - key: COMPOSIO_BASE_URL
+        value: https://backend.composio.dev/api/v3.1
+      - key: ALLOW_COMPOSIO_EXECUTE
+        value: "false"
+      # ── Additional integrations (all optional; set the ones you use) ──
+      # Observability
+      - key: HELICONE_API_KEY
+        sync: false
+      - key: LANGSMITH_API_KEY
+        sync: false
+      # Alias accepted by the tracing layer (LANGSMITH_API_KEY takes precedence)
+      - key: LANGCHAIN_API_KEY
+        sync: false
+      - key: LANGSMITH_PROJECT
+        value: openclaw-omega
+      # Web search providers
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: EXA_API_KEY
+        sync: false
+      # Semantic memory (real vector RAG). EMBEDDINGS_API_KEY makes the vectors;
+      # required for BOTH the Postgres store and Pinecone.
+      - key: EMBEDDINGS_API_KEY
+        sync: false
+      - key: EMBEDDINGS_BASE_URL
+        value: https://api.openai.com/v1
+      - key: EMBEDDINGS_MODEL
+        value: text-embedding-3-small
+      # Pinecone = primary vector store (falls back to Postgres if unset/unreachable).
+      # The index dimension MUST match the embedding model (1536 for the default).
+      # Provide EITHER PINECONE_INDEX (the index name — host auto-resolved via the
+      # Pinecone API) OR the full PINECONE_INDEX_HOST. PINECONE_INDEX is simplest.
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX
+        sync: false
+      - key: PINECONE_INDEX_HOST
+        sync: false
+      - key: PINECONE_NAMESPACE
+        value: openclaw
+      # Event bus + cloud sandbox
+      - key: INNGEST_EVENT_KEY
+        sync: false
+      - key: INNGEST_SIGNING_KEY
+        sync: false
+      - key: INNGEST_EVENT_URL
+        sync: false
+      - key: E2B_API_KEY
+        sync: false
+      # GitHub token for the sandbox git tools (agents push branches / open PRs).
+      # Use a FINE-GRAINED token scoped to this repo only (Contents + PRs write).
+      # Value is set in the Render dashboard or the in-app vault — never committed.
+      - key: SANDBOX_GITHUB_TOKEN
+        sync: false
+
+# ⚠️ NO blueprint-managed database here ON PURPOSE.
+#    The Postgres is the standalone paid instance `openclaw-db`
+#    (databaseName openclaw_db_te42, plan basic_256mb) managed in the Render
+#    dashboard — NOT by this blueprint. The previous free `bos-aura-db` block was
+#    removed after it was auto-deleted (Render deletes free Postgres after ~30
+#    days), which left `fromDatabase` unresolved and crash-looped every deploy on
+#    2026-06-13. DATABASE_URL is set directly on the service (sync:false) and
+#    points at openclaw-db. Re-introducing a `databases:` block risks a sync
+#    trying to recreate/downgrade the DB — do not add one without verifying the
+#    exact name + paid plan in the dashboard first. Back up regularly:
+#    `pnpm --filter @workspace/scripts vault:backup` (encrypted, off-database).

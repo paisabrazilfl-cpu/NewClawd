@@ -1,0 +1,102 @@
+name: Self-Test (build · tests · endpoints · Playwright UI)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'artifacts/api-server/dist/**'
+      - 'artifacts/openclaw/dist/**'
+      - '.agents/**'
+      - '**.md'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: openclaw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/openclaw
+      NODE_ENV: production
+      PORT: "3001"
+      BASE_PATH: /
+      BASE_URL: http://localhost:3001
+      # Test operator auth credentials. These are dummy values used in CI to
+      # authenticate to protected routes. They MUST match the values set when
+      # starting the server in this workflow. Without these, the self-test
+      # harness will skip login and treat 401 responses as acceptable.
+      OPERATOR_PASSWORD: test-password
+      SESSION_SECRET: test-session-secret
+      # The hardened CORS policy in app.ts fails closed in production: with
+      # NODE_ENV=production set above, the server refuses to boot unless an
+      # ALLOWED_ORIGINS allowlist is provided. Supply the CI base URL so the
+      # self-test server starts.
+      ALLOWED_ORIGINS: http://localhost:3001
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @workspace/scripts exec playwright install --with-deps chromium
+
+      - name: Typecheck
+        run: pnpm -r run typecheck
+
+      - name: Build API + frontend
+        run: |
+          pnpm --filter @workspace/api-server run build
+          pnpm --filter @workspace/openclaw run build
+
+      - name: Boot server
+        run: |
+          node artifacts/api-server/dist/index.mjs > server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3001/api/healthz && echo "server up" && break
+            sleep 1
+          done
+
+      - name: Run API tests
+        run: pnpm --filter @workspace/api-server run test
+
+      - name: Run self-test harness
+        run: pnpm --filter @workspace/scripts run self-test
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-test-evidence
+          path: |
+            .self-test/
+            server.log
+          if-no-files-found: ignore
