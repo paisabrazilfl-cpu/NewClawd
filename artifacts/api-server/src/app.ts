@@ -69,6 +69,11 @@ app.get("/healthz", (_req, res) => {
   res.json({ status: "ok", service: "bos-aura-api" });
 });
 
+// Render blueprint healthCheckPath is /health; keep both endpoints alive.
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", service: "bos-aura-api" });
+});
+
 // In production, serve the Vite-built frontend if it was bundled into the image.
 const __filename_app = fileURLToPath(import.meta.url);
 const __dirname_app = path.dirname(__filename_app);

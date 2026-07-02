@@ -4,8 +4,9 @@ A pnpm workspace monorepo running an Express API server (`@workspace/api-server`
 
 ## Production
 
+- **GitHub repo:** https://github.com/paisabrazilfl-cpu/NewClawd
 - **Render service:** https://bos-aura.onrender.com
-- **Health check:** `GET /healthz` (also `GET /api/healthz`)
+- **Health check:** `GET /health` (also `GET /healthz`, `GET /api/healthz`)
 - **Render blueprint:** `render.yaml` (no managed database — `DATABASE_URL` set directly on the service)
 - **Deployment flow:** GitHub Actions → builds `artifacts/api-server/dist/index.mjs` → commits dist → triggers Render deploy
 

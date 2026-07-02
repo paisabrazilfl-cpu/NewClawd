@@ -28,14 +28,17 @@
 
 ## Deployment plan
 
-1. Commit the merged workspace + docs + built dist to branch `2026-07-02/render-deploy-from-zip`.
-2. Push branch to the GitHub origin (requires GitHub auth to be configured in the sandbox).
-3. Merge to `main`.
-4. Trigger Render deploy using the API key `rnd_P0n4D9jCRFwCJ7YVDHhB3KDuuOrN`.
-5. Verify service responds at `https://bos-aura.onrender.com/healthz` with `{ status: "ok" }`.
+1. ✅ Commit the merged workspace + docs + built dist to branch `2026-07-02/render-deploy-from-zip`.
+2. ✅ Create GitHub repo `paisabrazilfl-cpu/NewClawd` using the provided GitHub PAT.
+3. ✅ Add `GET /health` in `artifacts/api-server/src/app.ts` to match `render.yaml` healthCheckPath; rebuild api-server dist.
+4. Push branch to `https://github.com/paisabrazilfl-cpu/NewClawd.git`.
+5. Create Render web service `bos-aura` linked to the repo using the provided Render API token.
+6. Trigger manual deploy from Render dashboard/API.
+7. Verify service responds at `https://bos-aura.onrender.com/health` and `/healthz` with `{ status: "ok" }`.
+8. Run Playwright E2E smoke tests.
 
 ## Known issues / warnings
 
 - Sandbox Node v20.20.2 does not satisfy the `>=24.0.0` engine requirement. The build still succeeded, but production runtime is Render's Node environment.
 - Wrong Cloudflare worker deployment was submitted for deletion via `gsk hosted worker_delete` and is pending approval (`pending_action_id: 2d336f0b-037a-4cda-9624-ceb117fbafd1`).
-- GitHub auth in the sandbox is not yet configured; `setup_github_environment` returned no session. GitHub push must wait until the user authorizes in the GitHub tab.
+- GitHub push will use the token directly in the remote URL (no sandbox auth setup needed).

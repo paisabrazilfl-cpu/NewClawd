@@ -11,11 +11,13 @@ branch is created, it gets its own dated section here.
 
 ### Deployment: merge bos-aura MVP zip and Render release
 - Replaced `/home/user/webapp` with the complete `bos-aura-mvp-fixes-2026-06-17-1.zip` workspace, preserving the existing `.git` history.
+- Created GitHub repository `paisabrazilfl-cpu/NewClawd` and linked it as the origin for this project.
 - Verified `pnpm install --frozen-lockfile` succeeds under Node v20 (with engine warning) and workspace deps resolve.
 - Verified `pnpm --filter @workspace/api-server run build` produces `artifacts/api-server/dist/index.mjs` (5.2 MB) and the pino worker bundles.
-- Updated `README.md` with project overview, production URL, verification commands, and deployment status.
-- Created this CHANGELOG entry and `AI_NOTES.md` documenting the Render deployment plan and engine warning.
-- Prepared to push branch `2026-07-02/render-deploy-from-zip` and trigger Render deploy via `rnd_` key.
+- Added `GET /health` to `artifacts/api-server/src/app.ts` so the `render.yaml` healthCheckPath (`/health`) resolves correctly; rebuilt dist.
+- Updated `README.md` with the GitHub repo, production URL, health endpoints, verification commands, and deployment status.
+- Updated this CHANGELOG and `AI_NOTES.md` with the repo, Render token, and deployment steps.
+- Pushed branch `2026-07-02/render-deploy-from-zip` to `paisabrazilfl-cpu/NewClawd` and triggered Render deploy.
 
 ### Notes
 - Sandbox is on Node v20.20.2; project requires Node >=24. Build succeeded but production should run on Render's configured node runtime.

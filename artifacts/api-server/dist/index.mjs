@@ -123181,6 +123181,9 @@ app.use("/api", routes_default);
 app.get("/healthz", (_req, res) => {
   res.json({ status: "ok", service: "bos-aura-api" });
 });
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", service: "bos-aura-api" });
+});
 var __filename_app = fileURLToPath2(import.meta.url);
 var __dirname_app = path2.dirname(__filename_app);
 var staticPath = path2.join(__dirname_app, "..", "..", "openclaw", "dist", "public");
